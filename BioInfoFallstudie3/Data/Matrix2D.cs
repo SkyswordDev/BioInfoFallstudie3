@@ -32,4 +32,36 @@ public record Matrix2D<T>
         this._Data = data;
     }
 
+    public T[,] To2DArray()
+    {
+        T[,] result = new T[ColumnCount, RowCount];
+
+        for (int i = 0; i < ColumnCount; i++)
+            for (int j = 0; j < RowCount; j++)
+                result[i, j] = this[i, j];
+
+        return result;
+    }
+
+    public Matrix2D(T[,] data)
+    {
+        if (data.Length == 0)
+            throw new ArgumentException($"The Matrix must not be empty but {data.Length} was 0.");
+
+        this.ColumnCount = data.GetLength(0);
+        this.RowCount = data.GetLength(1);
+
+        ImmutableArray<ImmutableArray<T>>.Builder outerBuilder = ImmutableArray.CreateBuilder<ImmutableArray<T>>();
+        for(int i = 0; i < data.GetLength(0); i++)
+        {
+            ImmutableArray<T>.Builder innerBuilder = ImmutableArray.CreateBuilder<T>();
+            for(int j = 0; j < data.GetLength(1); j++)
+            {
+                innerBuilder.Add(data[i, j]);
+            }
+            outerBuilder.Add(innerBuilder.ToImmutable());
+        }
+
+        this._Data = outerBuilder.ToImmutable();
+    }
 }

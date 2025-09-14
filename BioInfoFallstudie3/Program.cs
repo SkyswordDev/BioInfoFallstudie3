@@ -1,28 +1,46 @@
 ﻿using System.Text;
 using BioInfoFallstudie3;
+using BioInfoFallstudie3.Data;
 
 public class Program
 {
     public static void Main()
     {
-        //return;
-        //foreach(Dictionary<string, double> dict in Posteriori.RunTest())
+        Console.WriteLine((1d/6d));
+
+        string diceResults = "5232261464466441435225126522642312556132443456526366163666666322664352516321436566646526566652615164361561666666132326521113334426663663653645145642523254632465354222164246161355365662656664661513544256626622651313614611331631311664535355561552126135644244515532651456556633614666616516666215331431415232261466666441435225126522642312556132443456526366163666666322664352516321436566646526566652615164461561666666132326521113334426663663653645145642523254632465354666164243161355365662656";
+        string diceResultsReversed = string.Join("", diceResults.Reverse());
+
+        //string[] observations = diceResults.ToCharArray().Select(c => c.ToString()).ToArray();
+
+        //foreach(string observ in observations)
         //{
-        //    Console.WriteLine("{ " + string.Join(", ", dict.Select((KeyValuePair<string, double> kvp) => $"{kvp.Key}: {kvp.Value}")) + " }");
+        //    Console.WriteLine(observ);
+        //}
+
+
+
+
+        //int[] observations = diceResults.ToCharArray().Select(c => int.Parse(c.ToString()) - 1).ToArray();
+        //ViterbiV2.Run(ViterbiProbabilityCalculationProviders<double>.Normal, Posteriori.testModel, diceResults.ToCharArray().Select(c => c.ToString()).ToArray());
+        return;
+        //foreach (Dictionary<int, double> dict in Posteriori.RunTest())
+        //{
+        //    HiddenMarkovModel<string, string, double> hmm = Posteriori.testModel;
+        //    Console.WriteLine("{ " + string.Join(", ", dict.Select((KeyValuePair<int, double> kvp) => $"{hmm.States[kvp.Key]}: {kvp.Value}")) + " }");
         //}
         //Console.WriteLine();
-        //foreach (Dictionary<string, double> dict in Posteriori.RunTest2())
+        //foreach (Dictionary<int, double> dict in Posteriori.RunTest2())
         //{
-        //    Console.WriteLine("{ " + string.Join(", ", dict.Select((KeyValuePair<string, double> kvp) => $"{kvp.Key}: {kvp.Value}")) + " }");
+        //    HiddenMarkovModel<string, string, double> hmm = Posteriori.testModel;
+        //    Console.WriteLine("{ " + string.Join(", ", dict.Select((KeyValuePair<int, double> kvp) => $"{hmm.States[kvp.Key]}: {kvp.Value}")) + " }");
         //}
 
         //return;
 
         double diceSwapProbably = 1d/20d;
 
-        string diceResults = "5232261464466441435225126522642312556132443456526366163666666322664352516321436566646526566652615164361561666666132326521113334426663663653645145642523254632465354222164246161355365662656664661513544256626622651313614611331631311664535355561552126135644244515532651456556633614666616516666215331431415232261466666441435225126522642312556132443456526366163666666322664352516321436566646526566652615164461561666666132326521113334426663663653645145642523254632465354666164243161355365662656";
-        string diceResultsReversed = string.Join("", diceResults.Reverse());
-
+        
         ViterbiDicePrintResults(diceResults, diceSwapProbably);
         ViterbiDicePrintResults(diceResultsReversed, diceSwapProbably, true);
 
