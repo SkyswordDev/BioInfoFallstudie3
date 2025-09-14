@@ -5,7 +5,6 @@ public class Program
 {
     public static void Main()
     {
-
         //return;
         //foreach(Dictionary<string, double> dict in Posteriori.RunTest())
         //{
@@ -18,21 +17,26 @@ public class Program
         //}
 
         //return;
-        double diceSwapProbably = 1d/5d;
+
+        double diceSwapProbably = 1d/20d;
 
         string diceResults = "5232261464466441435225126522642312556132443456526366163666666322664352516321436566646526566652615164361561666666132326521113334426663663653645145642523254632465354222164246161355365662656664661513544256626622651313614611331631311664535355561552126135644244515532651456556633614666616516666215331431415232261466666441435225126522642312556132443456526366163666666322664352516321436566646526566652615164461561666666132326521113334426663663653645145642523254632465354666164243161355365662656";
         string diceResultsReversed = string.Join("", diceResults.Reverse());
 
         ViterbiDicePrintResults(diceResults, diceSwapProbably);
-        ViterbiDicePrintResults(diceResultsReversed, diceSwapProbably);
+        ViterbiDicePrintResults(diceResultsReversed, diceSwapProbably, true);
 
         //Console.WriteLine("Observations: " + string.Join(", ", observations));
         //Console.WriteLine("Most likely states: " + string.Join(" -> ", pathNames!));
     }
 
-    private static string ViterbiDicePrintResults(string diceResults, double diceSwapProbably)
+    private static string ViterbiDicePrintResults(string diceResults, double diceSwapProbably, bool writeReversed = false)
     {
         string[] pathNames = ViterbiDice(diceResults, diceSwapProbably);
+        if (writeReversed)
+        {
+            pathNames = pathNames.Reverse().ToArray();
+        }
         string  result = string.Join(string.Empty, pathNames!);
         Console.WriteLine(result);
         return result;
@@ -68,6 +72,7 @@ public class Program
         int[] observations = diceResults.ToCharArray().Select(c => int.Parse(c.ToString()) - 1).ToArray();
 
         var pathNames = Viterbi.Run(
+            ViterbiProbabilityCalculationProviders<double>.Normal,
             numStates,
             start,
             trans,

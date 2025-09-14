@@ -22,7 +22,8 @@ class Viterbi
         return itemsList;
     }
 
-    public static TState[] Run<TState, TObservation>(IEnumerable<TState> states, IDictionary<TState, double> initialStateProbabilities,
+    public static TState[] Run<TState, TObservation>(IViterbiProbabilityCalculationProvider<double> viterbiProbabilityCalculationProvider,
+        IEnumerable<TState> states, IDictionary<TState, double> initialStateProbabilities,
         IDictionary<TState, IDictionary<TState, double>> transitions,
         IDictionary<TState, IDictionary<TObservation, double>> emissions,
         IEnumerable<TObservation> observations)
@@ -50,13 +51,12 @@ class Viterbi
             {
                 observationIndexes[i] = observationsIndexDictionary[observation];
             }
-
         }
 
         int stateCount = statesList.Count;
         int uniqueEmissionCount = nextObservationLookupIndex;
 
-        //build transmission matrix; throws is state1 to state2 transition was not in transitions
+        //build transmission matrix; throws if state1 to state2 transition was not in transitions
         double[,] transitionMatrix = new double[stateCount, stateCount];
         for(int state1Index = 0; state1Index < stateCount; state1Index++)
         {
@@ -93,16 +93,18 @@ class Viterbi
         }
 
 
-        return Run<TState>(statesList, initialStateProbabilitiesArr, transitionMatrix, emissionMatrix, observationIndexes);
+        return Run<TState>(viterbiProbabilityCalculationProvider, statesList, initialStateProbabilitiesArr, transitionMatrix, emissionMatrix, observationIndexes);
     }
 
-    public static TState[] Run<TState>(IReadOnlyList<TState> states, double[] initialStateProbabilities, double[,] transitionMatrix, double[,] emissionMatrix, int[] observations)
+    public static TState[] Run<TState>(IViterbiProbabilityCalculationProvider<double> viterbiProbabilityCalculationProvider,
+        IReadOnlyList<TState> states, double[] initialStateProbabilities, double[,] transitionMatrix, double[,] emissionMatrix, int[] observations)
     {
-        int[] path = Run(states.Count, initialStateProbabilities, transitionMatrix, emissionMatrix, observations);
+        int[] path = Run(viterbiProbabilityCalculationProvider, states.Count, initialStateProbabilities, transitionMatrix, emissionMatrix, observations);
         return path.Select(p => states[p]).ToArray();
     }
 
-    public static int[] Run(int stateCount, double[] initialStateProbabilities, double[,] transitionMatrix, double[,] emissionMatrix, int[] observationIndexes)
+    public static int[] Run(IViterbiProbabilityCalculationProvider<double> viterbiProbabilityCalculationProvider,
+        int stateCount, double[] initialStateProbabilities, double[,] transitionMatrix, double[,] emissionMatrix, int[] observationIndexes)
     {
         //    input states: S hidden states
         //    input init:
@@ -116,6 +118,9 @@ class Viterbi
 
         //    prob ← T × S matrix of zeroes
         double[,] prob = new double[observationIndexes.Length, stateCount];
+        for (int i = 0; i < observationIndexes.Length; i++)
+            for (int j = 0; j < stateCount; j++)
+                prob[i, j] = double.MinValue;
         //    prev ← empty T × S matrix
         int[,] prev = new int[observationIndexes.Length, stateCount];
 
@@ -124,7 +129,8 @@ class Viterbi
         //prob[0][s] = init[s] * emit[s][obs[0]]
         for (int state = 0; state < stateCount; state++)
         {
-            prob[0, state] = initialStateProbabilities[state] * emissionMatrix[state, observationIndexes[0]];
+            //prob[0, state] = initialStateProbabilities[state] * emissionMatrix[state, observationIndexes[0]];
+            prob[0, state] = viterbiProbabilityCalculationProvider.ViterbiProbabilityInitialization(initialStateProbabilities[state], emissionMatrix[state, observationIndexes[0]]);
         }
 
         //for t = 1 to T - 1 inclusive do // t = 0 has been dealt with already
@@ -143,7 +149,8 @@ class Viterbi
                 for (int state2 = 0; state2 < stateCount; state2++)
                 {
                     //new_prob ← prob[t - 1][r] * trans[r][s] * emit[s][obs[t]]
-                    newProb = prob[observationNumber-1, state2] * transitionMatrix[state2, state] * emissionMatrix[state, observationIndex];
+                    //newProb = prob[observationNumber-1, state2] * transitionMatrix[state2, state] * emissionMatrix[state, observationIndex];
+                    newProb = viterbiProbabilityCalculationProvider.ViterbiProbabilityCalculation(emissionMatrix[state, observationIndex], prob[observationNumber-1, state2], transitionMatrix[state2, state]);
                     //if new_prob > prob[t][s] then
                     if (newProb > prob[observationNumber, state])
                     {
@@ -154,8 +161,14 @@ class Viterbi
                     }
                 }
             }
-
         }
+
+        //double[,] prob2 = new double[observationIndexes.Length, stateCount];
+        //for (int i = 0; i < observationIndexes.Length; i++)
+        //    for (int j = 0; j < stateCount; j++)
+        //        prob2[i, j] = Math.Exp(prob[i, j]);
+
+        //prob = prob2;
 
         //path ← empty array of length T
         int[] path = new int[observationIndexes.Length];
