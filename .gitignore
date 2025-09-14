@@ -52,3 +52,7 @@ CodeCoverage/
 *.VisualState.xml
 TestResult.xml
 nunit-*.xml
+*.bin
+/.vs/BioInfoFallstudie3/v17
+/.vs/BioInfoFallstudie3/FileContentIndex
+/.vs/BioInfoFallstudie3/DesignTimeBuild
