@@ -8,8 +8,6 @@ namespace BioInfoFallstudie3;
 
 
 
-
-
 public class Posteriori
 {
     public static string[] observations = ["normal", "cold", "dizzy", "normal", "cold"];
@@ -58,87 +56,105 @@ public class Posteriori
     public static List<Dictionary<string, double>> Run(string[] observations, string[] states, Dictionary<string, double> start_probabilities, Tricktionary<string, string, double> transition_probabilities, Tricktionary<string, string, double> emmission_probabilities, string end_st)
     {
         //# Forward part of the algorithm
-        List<Dictionary<string, double>> fwd = [];
-        double prev_f_sum;
-        Dictionary<string, double> f_curr = new();
-        Dictionary<string, double> f_prev = new();
+        List<Dictionary<string, double>> forwardProbabilities = [];
+        double previousForwardProbabilitiesSum;
+        Dictionary<string, double> currentForwardStateProbabilities = new();
+        Dictionary<string, double> previousForwardStateProbabilities = new();
 
         for (int i = 0; i < observations.Length; i++)
         {
-            f_curr = new();
+            currentForwardStateProbabilities = new();
             string observation_i = observations[i];
+
+            double probabilitySum = 0;
 
             foreach (string st in states)
             {
                 if (i == 0)
                 {
                     // base case for the forward part
-                    prev_f_sum = start_probabilities[st];
+                    previousForwardProbabilitiesSum = start_probabilities[st];
                 }
                 else
                 {
-                    prev_f_sum = 0;
+                    previousForwardProbabilitiesSum = 0;
                     foreach (var k in states)
                     {
-                        prev_f_sum += f_prev[k] * transition_probabilities[k][st];
+                        previousForwardProbabilitiesSum += previousForwardStateProbabilities[k] * transition_probabilities[k][st];
                     }
                 }
 
-                double nextValue = emmission_probabilities[st][observation_i] * prev_f_sum;
-                f_curr[st] = nextValue;
+                double nextValue = emmission_probabilities[st][observation_i] * previousForwardProbabilitiesSum;
+                currentForwardStateProbabilities[st] = nextValue;
+                probabilitySum += nextValue;
             }
 
-            fwd.Add(f_curr);
-            f_prev = f_curr;
+            double scaling = 1 / probabilitySum;
+
+            foreach (string key in states)
+            {
+                currentForwardStateProbabilities[key] = currentForwardStateProbabilities[key] * scaling;
+            }
+
+            forwardProbabilities.Add(currentForwardStateProbabilities);
+            previousForwardStateProbabilities = currentForwardStateProbabilities;
         }
 
         double p_fwd = 0;
         foreach (var k in states)
         {
-            p_fwd += f_curr[k] * transition_probabilities[k][end_st];
+            p_fwd += currentForwardStateProbabilities[k] * transition_probabilities[k][end_st];
         }
 
-        //# Backward part of the algorithm
-        List<Dictionary<string, double>> bkw = [];
-        Dictionary<string, double> b_curr = new();
-        Dictionary<string, double> bs_prev = new();
-        string[] reversed_observations = observations[1..].Append("None").Reverse().ToArray();
-        for (int i = 0; i < reversed_observations.Length; i++)
+        // Backward part of the algorithm
+        List<Dictionary<string, double>> backwardProbabilities = [];
+        Dictionary<string, double> currentBackwardStateProbabilities = new();
+        Dictionary<string, double> previousBackwardStateProbabilties = new();
+        string[] reversedObservations = observations[1..].Append("None").Reverse().ToArray();
+        for (int i = 0; i < reversedObservations.Length; i++)
         {
-            string observation_i_plus = reversed_observations[i];
-            b_curr = new();
-
+            string observation_i_plus = reversedObservations[i];
+            currentBackwardStateProbabilities = new();
+            double probabilitySum = 0;
             foreach (string st in states)
             {
                 if (i == 0)
                 {
                     // base case for backward part
-                    b_curr[st] = transition_probabilities[st][end_st];
+                    currentBackwardStateProbabilities[st] = transition_probabilities[st][end_st];
                 }
                 else
                 {
                     double sum = 0;
-                    foreach(string l in states)
+                    foreach (string l in states)
                     {
-                        double transition_probability = transition_probabilities[st][l];
-                        double emmission_probability = emmission_probabilities[l][observation_i_plus];
-                        double b_prev = bs_prev[l];
-                        sum += transition_probability * emmission_probability * b_prev;
+                        double transitionProbability = transition_probabilities[st][l];
+                        double emmissionProbability = emmission_probabilities[l][observation_i_plus];
+                        double previousBackwardStateProb = previousBackwardStateProbabilties[l];
+                        sum += transitionProbability * emmissionProbability * previousBackwardStateProb;
                     }
-                    b_curr[st] = sum;
+                    currentBackwardStateProbabilities[st] = sum;
                 }
+                probabilitySum += currentBackwardStateProbabilities[st];
             }
 
-            bkw.Add(b_curr);
-            bs_prev = b_curr;
+            double scaling = 1 / probabilitySum;
+
+            foreach (string key in states)
+            {
+                currentBackwardStateProbabilities[key] = currentBackwardStateProbabilities[key] * scaling;
+            }
+
+            backwardProbabilities.Add(currentBackwardStateProbabilities);
+            previousBackwardStateProbabilties = currentBackwardStateProbabilities;
         }
-        bkw.Reverse();
+        backwardProbabilities.Reverse();
 
         //p_bkw = sum(start_prob[l] * emm_prob[l][observations[0]] * b_curr[l] for l in states)
-        double p_sum = 0;
+        double p_bkw = 0;
         foreach (string l in states)
         {
-            p_sum = start_probabilities[l] * emmission_probabilities[l][observations[0]] * b_curr[l];
+            p_bkw = start_probabilities[l] * emmission_probabilities[l][observations[0]] * currentBackwardStateProbabilities[l];
         }
 
         //# Merging the two parts
@@ -146,15 +162,19 @@ public class Posteriori
         for (int i = 0; i < observations.Length; i++)
         {
             Dictionary<string, double> tmp = new();
-            foreach(string st in states)
+            foreach (string st in states)
             {
-                tmp.Add(st, fwd[i][st] * bkw[i][st] / p_fwd);
+                tmp.Add(st, forwardProbabilities[i][st] * backwardProbabilities[i][st] / p_fwd);
             }
 
             posterior.Add(tmp);
         }
 
-        //assert p_fwd == p_bkw
+        if (Math.Abs(p_fwd - p_bkw) < 0.00000001)
+        {
+            // these should be equal
+        }
+
         //return fwd, bkw, posterior
         return posterior;
     }

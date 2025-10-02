@@ -129,17 +129,17 @@ class Viterbi
         //prob[0][s] = init[s] * emit[s][obs[0]]
         for (int state = 0; state < stateCount; state++)
         {
-            //prob[0, state] = initialStateProbabilities[state] * emissionMatrix[state, observationIndexes[0]];
-            prob[0, state] = viterbiProbabilityCalculationProvider.ViterbiProbabilityInitialization(initialStateProbabilities[state], emissionMatrix[state, observationIndexes[0]]);
+            //prob[0, state] = viterbiProbabilityCalculationProvider.ViterbiProbabilityInitialization(initialStateProbabilities[state], emissionMatrix[state, observationIndexes[0]]);
+            prob[0, state] = Math.Log(initialStateProbabilities[state]) + Math.Log(emissionMatrix[state, observationIndexes[0]]);
         }
 
         //for t = 1 to T - 1 inclusive do // t = 0 has been dealt with already
         for (int observationNumber = 1; observationNumber < observationIndexes.Length; observationNumber++)
         {
-            if (observationNumber == 419)
-            {
-                int a = 0;
-            }
+            //if (observationNumber == 419)
+            //{
+            //    int a = 0;
+            //}
             int observationIndex = observationIndexes[observationNumber];
             double newProb;
             //for each state s in states do
@@ -150,12 +150,16 @@ class Viterbi
                 {
                     //new_prob ← prob[t - 1][r] * trans[r][s] * emit[s][obs[t]]
                     //newProb = prob[observationNumber-1, state2] * transitionMatrix[state2, state] * emissionMatrix[state, observationIndex];
-                    newProb = viterbiProbabilityCalculationProvider.ViterbiProbabilityCalculation(emissionMatrix[state, observationIndex], prob[observationNumber-1, state2], transitionMatrix[state2, state]);
+                    //newProb = viterbiProbabilityCalculationProvider.ViterbiProbabilityCalculation(emissionMatrix[state, observationIndex], prob[observationNumber-1, state2], transitionMatrix[state2, state]);
+                    newProb = prob[observationNumber - 1, state2] + Math.Log(transitionMatrix[state2, state]) + Math.Log(emissionMatrix[state, observationIndex]);
+                    //TODO: Remove emission probability here
+
                     //if new_prob > prob[t][s] then
                     if (newProb > prob[observationNumber, state])
                     {
                         //prob[t][s] ← new_prob
                         prob[observationNumber, state] = newProb;
+                        //TODO: add/multiply emission probability here (custom provider)
                         //prev[t][s] ← r
                         prev[observationNumber, state] = state2;
                     }
